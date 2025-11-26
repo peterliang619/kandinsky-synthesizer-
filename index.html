@@ -7,31 +7,344 @@
     <style>
         body {
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            overflow: hidden;
             font-family: Arial, sans-serif;
         }
 
-        .container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
         }
 
-        object {
+        #kandinsky-canvas {
+            width: 100%;
+            height: 100%;
             display: block;
+        }
+
+        #synthesizer-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        #synthesizer-container object {
+            pointer-events: all;
+            display: block;
+            filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.15));
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <object data="synthesizer.svg" type="image/svg+xml" width="839" height="430">
+    <div id="canvas-container">
+        <canvas id="kandinsky-canvas"></canvas>
+    </div>
+
+    <div id="synthesizer-container">
+        <object id="synthesizer" data="synthesizer.svg" type="image/svg+xml" width="839" height="430">
             Your browser does not support SVG
         </object>
     </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('kandinsky-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Active keys tracking
+        const activeKeys = new Set();
+        const particles = [];
+        const shapes = [];
+
+        // Kandinsky color palette
+        const colors = [
+            '#FF6B6B', '#4ECDC4', '#FFE66D', '#A8E6CF', '#FF8B94',
+            '#B4A7D6', '#FDA7DF', '#82C0CC', '#FFA07A', '#98D8C8',
+            '#F67280', '#C06C84', '#6C5B7B', '#355C7D', '#2A9D8F',
+            '#E63946', '#F1FAEE', '#A8DADC', '#457B9D', '#1D3557',
+            '#E76F51', '#F4A261', '#E9C46A', '#2A9D8F', '#264653',
+            '#8338EC', '#FF006E', '#FB5607', '#FFBE0B', '#3A86FF',
+            '#FF99C8', '#FCF6BD', '#D0F4DE', '#A9DEF9', '#E4C1F9'
+        ];
+
+        // Shape class for persistent geometric forms
+        class Shape {
+            constructor(x, y, type, color, keyId) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.color = color;
+                this.keyId = keyId;
+                this.age = 0;
+                this.rotation = 0;
+                this.scale = 0;
+                this.targetScale = Math.random() * 0.5 + 0.5;
+                this.opacity = 1;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.05;
+                this.size = Math.random() * 100 + 50;
+                this.pulsePhase = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                this.age++;
+                this.rotation += this.rotationSpeed;
+                this.scale += (this.targetScale - this.scale) * 0.1;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.pulsePhase += 0.05;
+
+                // Fade out if key is no longer active
+                if (!activeKeys.has(this.keyId)) {
+                    this.opacity -= 0.02;
+                }
+
+                // Boundary wrap
+                if (this.x < -200) this.x = canvas.width + 200;
+                if (this.x > canvas.width + 200) this.x = -200;
+                if (this.y < -200) this.y = canvas.height + 200;
+                if (this.y > canvas.height + 200) this.y = -200;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                const pulse = Math.sin(this.pulsePhase) * 0.2 + 1;
+                const s = this.size * this.scale * pulse;
+
+                ctx.fillStyle = this.color;
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 3;
+
+                switch(this.type) {
+                    case 'circle':
+                        ctx.beginPath();
+                        ctx.arc(0, 0, s/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    case 'ring':
+                        ctx.beginPath();
+                        ctx.arc(0, 0, s/2, 0, Math.PI * 2);
+                        ctx.stroke();
+                        break;
+                    case 'square':
+                        ctx.fillRect(-s/2, -s/2, s, s);
+                        break;
+                    case 'triangle':
+                        ctx.beginPath();
+                        ctx.moveTo(0, -s/2);
+                        ctx.lineTo(s/2, s/2);
+                        ctx.lineTo(-s/2, s/2);
+                        ctx.closePath();
+                        ctx.fill();
+                        break;
+                    case 'line':
+                        ctx.beginPath();
+                        ctx.moveTo(-s, 0);
+                        ctx.lineTo(s, 0);
+                        ctx.stroke();
+                        break;
+                    case 'cross':
+                        ctx.beginPath();
+                        ctx.moveTo(0, -s/2);
+                        ctx.lineTo(0, s/2);
+                        ctx.moveTo(-s/2, 0);
+                        ctx.lineTo(s/2, 0);
+                        ctx.stroke();
+                        break;
+                    case 'arc':
+                        ctx.beginPath();
+                        ctx.arc(0, 0, s/2, 0, Math.PI * 1.5);
+                        ctx.stroke();
+                        break;
+                }
+
+                ctx.restore();
+            }
+
+            isDead() {
+                return this.opacity <= 0;
+            }
+        }
+
+        // Particle class for dynamic effects
+        class Particle {
+            constructor(x, y, color, keyId) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.keyId = keyId;
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8;
+                this.life = 1;
+                this.size = Math.random() * 20 + 5;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+                this.life -= 0.015;
+            }
+
+            draw() {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            isDead() {
+                return this.life <= 0;
+            }
+        }
+
+        // Key visual effects mapping
+        const keyEffects = {
+            1: { shape: 'circle', color: 0, burst: true },
+            2: { shape: 'ring', color: 1, flow: true },
+            3: { shape: 'square', color: 2, rotate: true },
+            4: { shape: 'triangle', color: 3, pulse: true },
+            5: { shape: 'line', color: 4, wave: true },
+            6: { shape: 'circle', color: 5, expand: true },
+            7: { shape: 'cross', color: 6, spin: true },
+            8: { shape: 'arc', color: 7, morph: true },
+            9: { shape: 'square', color: 8, bounce: true },
+            10: { shape: 'triangle', color: 9, scatter: true },
+            11: { shape: 'ring', color: 10, ripple: true },
+            12: { shape: 'circle', color: 11, bloom: true },
+            13: { shape: 'line', color: 12, streak: true },
+            14: { shape: 'cross', color: 13, radiate: true },
+            15: { shape: 'arc', color: 14, swirl: true },
+            16: { shape: 'square', color: 15, fragment: true },
+            17: { shape: 'triangle', color: 16, cascade: true },
+            18: { shape: 'circle', color: 17, orbit: true },
+            19: { shape: 'ring', color: 18, vibrate: true },
+            20: { shape: 'line', color: 19, lightning: true },
+            21: { shape: 'cross', color: 20, explode: true },
+            22: { shape: 'arc', color: 21, flow: true },
+            23: { shape: 'square', color: 22, kaleidoscope: true },
+            24: { shape: 'triangle', color: 23, rain: true },
+            25: { shape: 'circle', color: 24, nebula: true },
+            26: { shape: 'ring', color: 25, echo: true },
+            27: { shape: 'line', color: 26, zigzag: true },
+            28: { shape: 'cross', color: 27, starburst: true },
+            29: { shape: 'arc', color: 28, vortex: true },
+            30: { shape: 'square', color: 29, tessellate: true },
+            31: { shape: 'triangle', color: 30, prism: true },
+            32: { shape: 'circle', color: 31, aurora: true },
+            33: { shape: 'ring', color: 32, mandala: true },
+            34: { shape: 'line', color: 33, fractal: true },
+            35: { shape: 'cross', color: 34, matrix: true },
+            36: { shape: 'arc', color: 35, helix: true },
+            37: { shape: 'square', color: 36, mosaic: true },
+            38: { shape: 'triangle', color: 37, pyramid: true },
+            39: { shape: 'circle', color: 38, supernova: true },
+            40: { shape: 'ring', color: 39, cosmic: true }
+        };
+
+        // Create visual effect for a key press
+        function triggerKeyEffect(keyNum) {
+            const effect = keyEffects[keyNum];
+            if (!effect) return;
+
+            const color = colors[effect.color % colors.length];
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Create main shape
+            for (let i = 0; i < 3; i++) {
+                const angle = (Math.random() * Math.PI * 2);
+                const distance = Math.random() * 200;
+                const x = centerX + Math.cos(angle) * distance;
+                const y = centerY + Math.sin(angle) * distance;
+
+                shapes.push(new Shape(x, y, effect.shape, color, keyNum));
+            }
+
+            // Create particle burst
+            for (let i = 0; i < 20; i++) {
+                const angle = (Math.random() * Math.PI * 2);
+                const distance = Math.random() * 100 + 50;
+                const x = centerX + Math.cos(angle) * distance;
+                const y = centerY + Math.sin(angle) * distance;
+
+                particles.push(new Particle(x, y, color, keyNum));
+            }
+        }
+
+        // Animation loop
+        function animate() {
+            // Fade background instead of clearing for trail effect
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update and draw particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].isDead()) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            // Update and draw shapes
+            for (let i = shapes.length - 1; i >= 0; i--) {
+                shapes[i].update();
+                shapes[i].draw();
+                if (shapes[i].isDead()) {
+                    shapes.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start animation
+        animate();
+
+        // Connect to SVG synthesizer
+        const svgObject = document.getElementById('synthesizer');
+        svgObject.addEventListener('load', function() {
+            const svgDoc = svgObject.contentDocument;
+            if (!svgDoc) return;
+
+            for (let keyNum = 1; keyNum <= 40; keyNum++) {
+                const keyElement = svgDoc.getElementById(`key${keyNum}`);
+                if (keyElement) {
+                    keyElement.addEventListener('click', function() {
+                        if (activeKeys.has(keyNum)) {
+                            activeKeys.delete(keyNum);
+                        } else {
+                            activeKeys.add(keyNum);
+                            triggerKeyEffect(keyNum);
+                        }
+                    });
+                }
+            }
+        });
+    </script>
 </body>
 </html>
