@@ -247,67 +247,29 @@
 
                 document.getElementById('first-figma').appendChild(firstPageSVG);
 
-                // Find and attach click listeners to "Play" and "About" text elements
-                const allTextElements = firstPageSVG.querySelectorAll('text, tspan, g');
-                let playFound = false;
-                let aboutFound = false;
+                // Add click detection based on coordinates
+                // Upper half = Play (go to Synthesizer)
+                // Lower half = About (go to About page)
+                firstPageSVG.style.cursor = 'pointer';
+                firstPageSVG.addEventListener('click', (e) => {
+                    // Get click position relative to SVG
+                    const rect = firstPageSVG.getBoundingClientRect();
+                    const clickY = e.clientY - rect.top;
+                    const svgHeight = rect.height;
+                    const midPoint = svgHeight / 2;
 
-                allTextElements.forEach(element => {
-                    const textContent = (element.textContent || '').trim().toLowerCase();
+                    console.log(`Click at Y: ${clickY}, midpoint: ${midPoint}`);
 
-                    // Debug: log all text content
-                    if (textContent.length > 0 && textContent.length < 20) {
-                        console.log('Found text element:', textContent);
-                    }
-
-                    // Check for "Play" text
-                    if (textContent.includes('play')) {
-                        playFound = true;
-                        console.log('Found Play element!');
-                        element.style.cursor = 'pointer';
-                        element.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            console.log('Play element clicked - going to Synthesizer');
-                            goToSynthesizer();
-                        });
-                        // Also make parent group clickable
-                        let parent = element.parentElement;
-                        while (parent && parent !== firstPageSVG) {
-                            parent.style.cursor = 'pointer';
-                            parent.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                console.log('Play parent clicked - going to Synthesizer');
-                                goToSynthesizer();
-                            });
-                            parent = parent.parentElement;
-                        }
-                    }
-
-                    // Check for "About" text
-                    if (textContent.includes('about')) {
-                        aboutFound = true;
-                        console.log('Found About element!');
-                        element.style.cursor = 'pointer';
-                        element.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            console.log('About element clicked - going to About page');
-                            goToAbout();
-                        });
-                        // Also make parent group clickable
-                        let parent = element.parentElement;
-                        while (parent && parent !== firstPageSVG) {
-                            parent.style.cursor = 'pointer';
-                            parent.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                console.log('About parent clicked - going to About page');
-                                goToAbout();
-                            });
-                            parent = parent.parentElement;
-                        }
+                    if (clickY < midPoint) {
+                        // Upper half - Play
+                        console.log('Upper half clicked - going to Synthesizer');
+                        goToSynthesizer();
+                    } else {
+                        // Lower half - About
+                        console.log('Lower half clicked - going to About page');
+                        goToAbout();
                     }
                 });
-
-                console.log(`Play found: ${playFound}, About found: ${aboutFound}`);
 
                 // Clone for About Page - top section
                 const aboutPageSVG = svgDoc.documentElement.cloneNode(true);
