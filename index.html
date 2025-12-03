@@ -28,6 +28,9 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.8s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .page.active {
@@ -35,89 +38,43 @@
             pointer-events: all;
         }
 
-        /* First Page */
-        #first-page {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 3;
-        }
-
-        #first-page h1 {
-            font-size: 4rem;
-            margin-bottom: 2rem;
-            letter-spacing: 0.2rem;
-        }
-
-        #first-page .subtitle {
-            font-size: 1.5rem;
-            margin-bottom: 4rem;
-            opacity: 0.7;
-        }
-
-        .btn {
-            padding: 1rem 3rem;
-            font-size: 1.2rem;
-            background: transparent;
-            border: 2px solid #fff;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: monospace;
-        }
-
-        .btn:hover {
-            background: #fff;
-            color: #000;
-        }
-
-        /* About Page */
-        #about-page {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 2;
-        }
-
-        #about-page .content {
-            max-width: 800px;
-            text-align: center;
-            padding: 2rem;
-            z-index: 10;
-            position: relative;
-        }
-
-        #about-page h2 {
-            font-size: 3rem;
-            margin-bottom: 2rem;
-        }
-
-        #about-page p {
-            font-size: 1.2rem;
-            line-height: 1.8;
-            margin-bottom: 1.5rem;
-            opacity: 0.9;
-        }
-
-        #about-page .play-btn {
-            margin-top: 3rem;
-        }
-
-        /* Wave SVG */
-        #wave-svg {
+        /* SVG Pages Container */
+        #figma-svg-container {
             position: absolute;
-            bottom: 0;
+            top: 0;
             left: 0;
             width: 100%;
-            height: 30vh;
-            z-index: 1;
-            transition: height 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        #wave-svg.expanded {
-            height: 60vh;
+        #figma-svg-container svg {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+        }
+
+        /* First Page (viewBox slice 0 0 1728 1117) */
+        #first-page svg {
+            cursor: pointer;
+        }
+
+        /* About Page (viewBox slice 2050 0 1728 1117) */
+        #about-page svg {
+            cursor: pointer;
+        }
+
+        /* Wave animation on About page */
+        #wave-vector {
+            transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #about-page.active #wave-vector {
+            transform: translateY(-200px) scaleY(1.5);
+            transform-origin: center bottom;
         }
 
         /* Synthesizer Page */
@@ -164,6 +121,16 @@
             filter: brightness(0.8);
         }
 
+        /* Buttons on Figma pages */
+        .figma-button {
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .figma-button:hover {
+            opacity: 0.8;
+        }
+
         /* Back button */
         .back-btn {
             position: absolute;
@@ -189,34 +156,12 @@
 <body>
     <!-- First Page -->
     <div id="first-page" class="page active">
-        <h1>WAVE POETRY</h1>
-        <div class="subtitle">An Interactive Synthesizer Experience</div>
-        <button class="btn" onclick="goToAbout()">About</button>
+        <div id="figma-svg-container"></div>
     </div>
 
     <!-- About Page -->
     <div id="about-page" class="page">
-        <div class="content">
-            <h2>About</h2>
-            <p>
-                Wave Poetry Synthesizer is an interactive audiovisual experience where
-                text transforms into flowing waves. Each key on the synthesizer triggers
-                unique animations, creating a dynamic interplay between poetry and motion.
-            </p>
-            <p>
-                The waves represent different stanzas of poetry, each with its own rhythm,
-                amplitude, and character. Press the keys to explore the relationship between
-                sound, text, and visual form.
-            </p>
-            <button class="btn play-btn" onclick="goToSynthesizer()">Play</button>
-        </div>
-
-        <!-- Vector Wave SVG -->
-        <svg id="wave-svg" viewBox="0 0 1440 320" preserveAspectRatio="none">
-            <path id="wave-path" fill="#ffffff" fill-opacity="0.1"
-                d="M0,160L48,176C96,192,192,224,288,224C384,224,480,192,576,165.3C672,139,768,117,864,128C960,139,1056,181,1152,197.3C1248,213,1344,203,1392,197.3L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
-            </path>
-        </svg>
+        <div id="figma-svg-container-about"></div>
     </div>
 
     <!-- Synthesizer Page -->
@@ -238,11 +183,92 @@
             currentPage = pageId;
         }
 
+        // Load Figma SVG and split into pages
+        async function loadFigmaPages() {
+            try {
+                const response = await fetch('figma page design');
+                const svgText = await response.text();
+
+                // Create parser
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                const originalSVG = svgDoc.documentElement;
+
+                // Create First Page (viewBox 0 0 1728 1117)
+                const firstPageSVG = originalSVG.cloneNode(true);
+                firstPageSVG.setAttribute('viewBox', '0 0 1728 1117');
+                firstPageSVG.setAttribute('width', '1728');
+                firstPageSVG.setAttribute('height', '1117');
+
+                // Add click listener to "About" text area (approximate position)
+                firstPageSVG.addEventListener('click', (e) => {
+                    const svgRect = firstPageSVG.getBoundingClientRect();
+                    const x = e.clientX - svgRect.left;
+                    const y = e.clientY - svgRect.top;
+
+                    // Check if click is near "About" button area (adjust based on your design)
+                    const aboutButtonArea = {
+                        x: 300,
+                        y: 850,
+                        width: 400,
+                        height: 100
+                    };
+
+                    if (x >= aboutButtonArea.x && x <= aboutButtonArea.x + aboutButtonArea.width &&
+                        y >= aboutButtonArea.y && y <= aboutButtonArea.y + aboutButtonArea.height) {
+                        goToAbout();
+                    }
+                });
+
+                document.getElementById('figma-svg-container').appendChild(firstPageSVG);
+
+                // Create About Page (viewBox 2050 0 1728 1117)
+                const aboutPageSVG = originalSVG.cloneNode(true);
+                aboutPageSVG.setAttribute('viewBox', '2050 0 1728 1117');
+                aboutPageSVG.setAttribute('width', '1728');
+                aboutPageSVG.setAttribute('height', '1117');
+
+                // Find the wave path element
+                const wavePath = aboutPageSVG.querySelector('path[fill="black"]');
+                if (wavePath) {
+                    wavePath.setAttribute('id', 'wave-vector');
+                }
+
+                // Add click listener to "Play" button area
+                aboutPageSVG.addEventListener('click', (e) => {
+                    const svgRect = aboutPageSVG.getBoundingClientRect();
+                    const x = e.clientX - svgRect.left;
+                    const y = e.clientY - svgRect.top;
+
+                    // Check if click is near "Play" button area (adjust based on your design)
+                    const playButtonArea = {
+                        x: 700,
+                        y: 900,
+                        width: 300,
+                        height: 100
+                    };
+
+                    if (x >= playButtonArea.x && x <= playButtonArea.x + playButtonArea.width &&
+                        y >= playButtonArea.y && y <= playButtonArea.y + playButtonArea.height) {
+                        goToSynthesizer();
+                    }
+                });
+
+                document.getElementById('figma-svg-container-about').appendChild(aboutPageSVG);
+
+                console.log('Figma pages loaded successfully');
+
+            } catch (error) {
+                console.error('Failed to load Figma SVG:', error);
+            }
+        }
+
         function goToAbout() {
             showPage('about-page');
-            // Animate wave rising
+            // Trigger wave animation after a short delay
             setTimeout(() => {
-                document.getElementById('wave-svg').classList.add('expanded');
+                const aboutPage = document.getElementById('about-page');
+                aboutPage.classList.add('wave-animated');
             }, 100);
         }
 
@@ -677,7 +703,10 @@
             }
         });
 
-        console.log('🌊 Wave Poetry Synthesizer Loaded');
+        // Load Figma pages on startup
+        loadFigmaPages();
+
+        console.log('🌊 Wave Poetry Synthesizer with Figma Designs');
         console.log('📄 Navigate: First Page → About → Synthesizer');
     </script>
 </body>
