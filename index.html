@@ -15,6 +15,114 @@
             background: #000;
             overflow: hidden;
             font-family: monospace;
+            color: #fff;
+        }
+
+        /* Page System */
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+        }
+
+        .page.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* First Page */
+        #first-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 3;
+        }
+
+        #first-page h1 {
+            font-size: 4rem;
+            margin-bottom: 2rem;
+            letter-spacing: 0.2rem;
+        }
+
+        #first-page .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 4rem;
+            opacity: 0.7;
+        }
+
+        .btn {
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            background: transparent;
+            border: 2px solid #fff;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: monospace;
+        }
+
+        .btn:hover {
+            background: #fff;
+            color: #000;
+        }
+
+        /* About Page */
+        #about-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+        }
+
+        #about-page .content {
+            max-width: 800px;
+            text-align: center;
+            padding: 2rem;
+            z-index: 10;
+            position: relative;
+        }
+
+        #about-page h2 {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+        }
+
+        #about-page p {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+            opacity: 0.9;
+        }
+
+        #about-page .play-btn {
+            margin-top: 3rem;
+        }
+
+        /* Wave SVG */
+        #wave-svg {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30vh;
+            z-index: 1;
+            transition: height 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #wave-svg.expanded {
+            height: 60vh;
+        }
+
+        /* Synthesizer Page */
+        #synthesizer-page {
+            z-index: 1;
         }
 
         #canvas {
@@ -28,10 +136,15 @@
 
         #synthesizer-container {
             position: absolute;
-            bottom: 20px;
+            bottom: -500px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
+            transition: bottom 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #synthesizer-container.rise {
+            bottom: 20px;
         }
 
         #synthesizer-container svg {
@@ -50,17 +163,105 @@
         [id^="key"]:active {
             filter: brightness(0.8);
         }
+
+        /* Back button */
+        .back-btn {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            padding: 0.5rem 1.5rem;
+            font-size: 1rem;
+            background: transparent;
+            border: 2px solid #fff;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: monospace;
+            z-index: 200;
+        }
+
+        .back-btn:hover {
+            background: #fff;
+            color: #000;
+        }
     </style>
 </head>
 <body>
-    <canvas id="canvas"></canvas>
-    <div id="synthesizer-container"></div>
+    <!-- First Page -->
+    <div id="first-page" class="page active">
+        <h1>WAVE POETRY</h1>
+        <div class="subtitle">An Interactive Synthesizer Experience</div>
+        <button class="btn" onclick="goToAbout()">About</button>
+    </div>
+
+    <!-- About Page -->
+    <div id="about-page" class="page">
+        <div class="content">
+            <h2>About</h2>
+            <p>
+                Wave Poetry Synthesizer is an interactive audiovisual experience where
+                text transforms into flowing waves. Each key on the synthesizer triggers
+                unique animations, creating a dynamic interplay between poetry and motion.
+            </p>
+            <p>
+                The waves represent different stanzas of poetry, each with its own rhythm,
+                amplitude, and character. Press the keys to explore the relationship between
+                sound, text, and visual form.
+            </p>
+            <button class="btn play-btn" onclick="goToSynthesizer()">Play</button>
+        </div>
+
+        <!-- Vector Wave SVG -->
+        <svg id="wave-svg" viewBox="0 0 1440 320" preserveAspectRatio="none">
+            <path id="wave-path" fill="#ffffff" fill-opacity="0.1"
+                d="M0,160L48,176C96,192,192,224,288,224C384,224,480,192,576,165.3C672,139,768,117,864,128C960,139,1056,181,1152,197.3C1248,213,1344,203,1392,197.3L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
+            </path>
+        </svg>
+    </div>
+
+    <!-- Synthesizer Page -->
+    <div id="synthesizer-page" class="page">
+        <button class="back-btn" onclick="goToAbout()">← Back</button>
+        <canvas id="canvas"></canvas>
+        <div id="synthesizer-container"></div>
+    </div>
 
     <script>
+        // Page Navigation
+        let currentPage = 'first-page';
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            currentPage = pageId;
+        }
+
+        function goToAbout() {
+            showPage('about-page');
+            // Animate wave rising
+            setTimeout(() => {
+                document.getElementById('wave-svg').classList.add('expanded');
+            }, 100);
+        }
+
+        function goToSynthesizer() {
+            showPage('synthesizer-page');
+            // Start animation
+            setTimeout(() => {
+                initSynthesizer();
+            }, 100);
+            // Animate synthesizer rising
+            setTimeout(() => {
+                document.getElementById('synthesizer-container').classList.add('rise');
+            }, 500);
+        }
+
+        // Canvas Setup
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
-        // Resize canvas
         function resize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -285,40 +486,49 @@
         }
 
         // Create wave layers
-        const waves = [
-            new WaveLayer(poem.wave1, 50, '#ffffff', {
-                amplitude: 20,
-                frequency: 0.01,
-                phase: 0,
-                speed: 1
-            }),
-            new WaveLayer(poem.wave2, 250, '#ffffff', {
-                amplitude: 30,
-                frequency: 0.015,
-                phase: Math.PI / 4,
-                speed: 1.5
-            }),
-            new WaveLayer(poem.wave3, 450, '#ffffff', {
-                amplitude: 25,
-                frequency: 0.012,
-                phase: Math.PI / 2,
-                speed: 0.8
-            }),
-            new WaveLayer(poem.wave4, 650, '#ffffff', {
-                amplitude: 35,
-                frequency: 0.008,
-                phase: Math.PI,
-                speed: 1.2
-            })
-        ];
-
-        // Animation state
+        let waves = [];
+        let animationRunning = false;
         let lastTime = Date.now();
         let globalEffects = {
             turbulence: 0,
             zoom: 1,
             rotation: 0
         };
+
+        function initSynthesizer() {
+            if (animationRunning) return;
+
+            waves = [
+                new WaveLayer(poem.wave1, 50, '#ffffff', {
+                    amplitude: 20,
+                    frequency: 0.01,
+                    phase: 0,
+                    speed: 1
+                }),
+                new WaveLayer(poem.wave2, 250, '#ffffff', {
+                    amplitude: 30,
+                    frequency: 0.015,
+                    phase: Math.PI / 4,
+                    speed: 1.5
+                }),
+                new WaveLayer(poem.wave3, 450, '#ffffff', {
+                    amplitude: 25,
+                    frequency: 0.012,
+                    phase: Math.PI / 2,
+                    speed: 0.8
+                }),
+                new WaveLayer(poem.wave4, 650, '#ffffff', {
+                    amplitude: 35,
+                    frequency: 0.008,
+                    phase: Math.PI,
+                    speed: 1.2
+                })
+            ];
+
+            animationRunning = true;
+            animate();
+            loadSynthesizer();
+        }
 
         // Key effects mapping (40 keys)
         const keyEffects = {
@@ -366,6 +576,11 @@
 
         // Animation loop
         function animate() {
+            if (!animationRunning || currentPage !== 'synthesizer-page') {
+                requestAnimationFrame(animate);
+                return;
+            }
+
             const currentTime = Date.now();
             const deltaTime = currentTime - lastTime;
             lastTime = currentTime;
@@ -393,6 +608,7 @@
             requestAnimationFrame(animate);
         }
 
+        // Start animation loop for page transitions
         animate();
 
         // Load the OP-1 Field SVG synthesizer
@@ -435,8 +651,6 @@
             }
         }
 
-        loadSynthesizer();
-
         // Trigger key effect
         function triggerKey(keyNum) {
             const waveIndex = Math.floor((keyNum - 1) / 10);
@@ -449,6 +663,8 @@
 
         // Keyboard support
         document.addEventListener('keydown', (e) => {
+            if (currentPage !== 'synthesizer-page') return;
+
             const keyMap = {
                 '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '0': 10,
                 'q': 11, 'w': 12, 'e': 13, 'r': 14, 't': 15, 'y': 16, 'u': 17, 'i': 18, 'o': 19, 'p': 20,
@@ -462,12 +678,7 @@
         });
 
         console.log('🌊 Wave Poetry Synthesizer Loaded');
-        console.log('🎹 Click keys on OP-1 Field or use keyboard:');
-        console.log('   1-0, q-p, a-;, z-/ to trigger wave effects');
-        console.log('   Keys 1-10: Wave 1 (Rising Tide)');
-        console.log('   Keys 11-20: Wave 2 (Surging)');
-        console.log('   Keys 21-30: Wave 3 (Receding Tide)');
-        console.log('   Keys 31-40: Wave 4 (Calm)');
+        console.log('📄 Navigate: First Page → About → Synthesizer');
     </script>
 </body>
 </html>
