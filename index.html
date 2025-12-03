@@ -247,27 +247,48 @@
 
                 document.getElementById('first-figma').appendChild(firstPageSVG);
 
-                // Add click detection based on coordinates
-                // Upper half = Play (go to Synthesizer)
-                // Lower half = About (go to About page)
-                firstPageSVG.style.cursor = 'pointer';
-                firstPageSVG.addEventListener('click', (e) => {
-                    // Get click position relative to SVG
-                    const rect = firstPageSVG.getBoundingClientRect();
-                    const clickY = e.clientY - rect.top;
-                    const svgHeight = rect.height;
-                    const midPoint = svgHeight / 2;
+                // Add click detection on vector paths
+                // Find all path elements and determine which are clickable based on position
+                const allPaths = firstPageSVG.querySelectorAll('path');
+                console.log(`Found ${allPaths.length} paths in First Page`);
 
-                    console.log(`Click at Y: ${clickY}, midpoint: ${midPoint}`);
+                allPaths.forEach((path, index) => {
+                    // Get bounding box of the path
+                    try {
+                        const bbox = path.getBBox();
+                        const centerY = bbox.y + bbox.height / 2;
 
-                    if (clickY < midPoint) {
-                        // Upper half - Play
-                        console.log('Upper half clicked - going to Synthesizer');
-                        goToSynthesizer();
-                    } else {
-                        // Lower half - About
-                        console.log('Lower half clicked - going to About page');
-                        goToAbout();
+                        // ViewBox is "0 1480 2075 1117", so visible area is y: 1480-2597
+                        // Upper half (1480-2038.5) = Play
+                        // Lower half (2038.5-2597) = About
+                        const viewBoxMidY = 1480 + (1117 / 2); // ~2038.5
+
+                        // Only attach handlers to paths that are reasonably sized (likely text/buttons)
+                        const isReasonableSize = bbox.width > 50 && bbox.width < 1000 &&
+                                                 bbox.height > 20 && bbox.height < 500;
+
+                        if (isReasonableSize && centerY >= 1480 && centerY <= 2597) {
+                            path.style.cursor = 'pointer';
+
+                            if (centerY < viewBoxMidY) {
+                                // Upper half - Play
+                                path.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    console.log(`Play path clicked (index ${index}, centerY: ${centerY})`);
+                                    goToSynthesizer();
+                                });
+                            } else {
+                                // Lower half - About
+                                path.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    console.log(`About path clicked (index ${index}, centerY: ${centerY})`);
+                                    goToAbout();
+                                });
+                            }
+                        }
+                    } catch (err) {
+                        // Some paths might not have valid bounding boxes
+                        console.log(`Could not get bbox for path ${index}`);
                     }
                 });
 
