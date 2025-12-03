@@ -259,8 +259,10 @@
                         const centerY = bbox.y + bbox.height / 2;
 
                         // ViewBox is "0 1480 2075 1117", so visible area is y: 1480-2597
-                        // Play is in upper area (smaller zone, just above About)
-                        // About is in lower area (larger zone)
+                        // Height: 1117, bottom 1/8 = ~140 pixels
+                        // About is in bottom 1/8: Y > 2457
+                        // Play is in upper area just above About
+                        const aboutThreshold = 2457; // About is below this Y coordinate (bottom 1/8)
                         const playThreshold = 1850; // Play is above this Y coordinate
 
                         // Only attach handlers to paths that are reasonably sized (likely text/buttons)
@@ -277,8 +279,8 @@
                                     console.log(`Play path clicked (index ${index}, centerY: ${centerY})`);
                                     goToSynthesizer();
                                 });
-                            } else {
-                                // Lower area - About
+                            } else if (centerY >= aboutThreshold) {
+                                // Bottom 1/8 area - About
                                 path.addEventListener('click', (e) => {
                                     e.stopPropagation();
                                     console.log(`About path clicked (index ${index}, centerY: ${centerY})`);
