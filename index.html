@@ -50,20 +50,9 @@
         }
 
         .figma-container svg {
-            height: 100vh;
-            width: auto;
-            transform-origin: left center;
-            transition: transform 0.8s ease;
-        }
-
-        /* About Page - show right section (starting page) */
-        #about-page svg {
-            transform: translateX(-54%);
-        }
-
-        /* First Page - show left section */
-        #first-page svg {
-            transform: translateX(0);
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         /* Wave animation - rises when entering First page from About */
@@ -195,30 +184,40 @@
                 const parser = new DOMParser();
                 const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
 
-                // Clone for About Page (starting page)
+                // Clone for About Page (starting page) - show right section
                 const aboutPageSVG = svgDoc.documentElement.cloneNode(true);
+                aboutPageSVG.setAttribute('viewBox', '2050 0 1728 1117');
+                aboutPageSVG.setAttribute('width', '1728');
+                aboutPageSVG.setAttribute('height', '1117');
                 aboutPageSVG.style.cursor = 'pointer';
 
                 // Add click detection for both About and Play buttons
                 aboutPageSVG.addEventListener('click', (e) => {
                     const bbox = aboutPageSVG.getBoundingClientRect();
-                    const clickX = ((e.clientX - bbox.left) / bbox.width) * 100;
-                    const clickY = ((e.clientY - bbox.top) / bbox.height) * 100;
+                    const x = (e.clientX - bbox.left) / bbox.width;
+                    const y = (e.clientY - bbox.top) / bbox.height;
 
-                    // Detect click on "about" button area (goes to First page)
-                    if (clickY > 70 && clickX > 35 && clickX < 50) {
+                    console.log(`Click at: ${(x*100).toFixed(1)}%, ${(y*100).toFixed(1)}%`);
+
+                    // Detect click on "about" text area (bottom left area - goes to First page)
+                    if (y > 0.70 && x > 0.15 && x < 0.45) {
+                        console.log('About button clicked');
                         goToFirstPage();
                     }
-                    // Detect click on "play" button area (goes to Synthesizer)
-                    else if (clickY > 75 && clickX > 55 && clickX < 75) {
+                    // Detect click on "play" button area (bottom center/right - goes to Synthesizer)
+                    else if (y > 0.75 && x > 0.45 && x < 0.75) {
+                        console.log('Play button clicked');
                         goToSynthesizer();
                     }
                 });
 
                 document.getElementById('about-figma').appendChild(aboutPageSVG);
 
-                // Clone for First Page
+                // Clone for First Page - show left section
                 const firstPageSVG = svgDoc.documentElement.cloneNode(true);
+                firstPageSVG.setAttribute('viewBox', '0 0 1728 1117');
+                firstPageSVG.setAttribute('width', '1728');
+                firstPageSVG.setAttribute('height', '1117');
                 document.getElementById('first-figma').appendChild(firstPageSVG);
 
                 console.log('Figma pages loaded successfully');
