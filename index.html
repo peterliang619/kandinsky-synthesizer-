@@ -56,22 +56,22 @@
             transition: transform 0.8s ease;
         }
 
+        /* About Page - show right section (starting page) */
+        #about-page svg {
+            transform: translateX(-54%);
+        }
+
         /* First Page - show left section */
         #first-page svg {
             transform: translateX(0);
         }
 
-        /* About Page - show right section */
-        #about-page svg {
-            transform: translateX(-54%);
-        }
-
-        /* Wave animation on About page */
-        #wave-vector {
+        /* Wave animation - rises when entering First page from About */
+        #first-page svg path[fill="black"] {
             transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        #about-page.active #wave-vector {
+        #first-page.active.wave-rise svg path[fill="black"] {
             transform: translateY(-200px) scaleY(1.5);
             transform-origin: center bottom;
         }
@@ -156,14 +156,14 @@
     </style>
 </head>
 <body>
-    <!-- First Page -->
-    <div id="first-page" class="page active">
-        <div class="figma-container" id="first-figma"></div>
+    <!-- About Page (Starting Page) -->
+    <div id="about-page" class="page active">
+        <div class="figma-container" id="about-figma"></div>
     </div>
 
-    <!-- About Page -->
-    <div id="about-page" class="page">
-        <div class="figma-container" id="about-figma"></div>
+    <!-- First Page -->
+    <div id="first-page" class="page">
+        <div class="figma-container" id="first-figma"></div>
     </div>
 
     <!-- Synthesizer Page -->
@@ -175,7 +175,7 @@
 
     <script>
         // Page Navigation
-        let currentPage = 'first-page';
+        let currentPage = 'about-page';
 
         function showPage(pageId) {
             document.querySelectorAll('.page').forEach(page => {
@@ -195,41 +195,31 @@
                 const parser = new DOMParser();
                 const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
 
-                // Clone for First Page
-                const firstPageSVG = svgDoc.documentElement.cloneNode(true);
-                firstPageSVG.style.cursor = 'pointer';
-
-                // Add click detection for About button (looking for "about" text)
-                firstPageSVG.addEventListener('click', (e) => {
-                    const bbox = firstPageSVG.getBoundingClientRect();
-                    const clickX = ((e.clientX - bbox.left) / bbox.width) * 100;
-                    const clickY = ((e.clientY - bbox.top) / bbox.height) * 100;
-
-                    // Detect click on "about" text area (roughly bottom middle of first page)
-                    if (clickY > 70 && clickX > 35 && clickX < 65) {
-                        goToAbout();
-                    }
-                });
-
-                document.getElementById('first-figma').appendChild(firstPageSVG);
-
-                // Clone for About Page
+                // Clone for About Page (starting page)
                 const aboutPageSVG = svgDoc.documentElement.cloneNode(true);
                 aboutPageSVG.style.cursor = 'pointer';
 
-                // Add click detection for Play button
+                // Add click detection for both About and Play buttons
                 aboutPageSVG.addEventListener('click', (e) => {
                     const bbox = aboutPageSVG.getBoundingClientRect();
                     const clickX = ((e.clientX - bbox.left) / bbox.width) * 100;
                     const clickY = ((e.clientY - bbox.top) / bbox.height) * 100;
 
-                    // Detect click on "play" button area (roughly bottom area of about page)
-                    if (clickY > 75 && clickX > 55 && clickX < 75) {
+                    // Detect click on "about" button area (goes to First page)
+                    if (clickY > 70 && clickX > 35 && clickX < 50) {
+                        goToFirstPage();
+                    }
+                    // Detect click on "play" button area (goes to Synthesizer)
+                    else if (clickY > 75 && clickX > 55 && clickX < 75) {
                         goToSynthesizer();
                     }
                 });
 
                 document.getElementById('about-figma').appendChild(aboutPageSVG);
+
+                // Clone for First Page
+                const firstPageSVG = svgDoc.documentElement.cloneNode(true);
+                document.getElementById('first-figma').appendChild(firstPageSVG);
 
                 console.log('Figma pages loaded successfully');
 
@@ -240,10 +230,14 @@
 
         function goToAbout() {
             showPage('about-page');
-            // Trigger wave animation after a short delay
+        }
+
+        function goToFirstPage() {
+            showPage('first-page');
+            // Trigger wave rising animation after a short delay
             setTimeout(() => {
-                const aboutPage = document.getElementById('about-page');
-                aboutPage.classList.add('wave-animated');
+                const firstPage = document.getElementById('first-page');
+                firstPage.classList.add('wave-rise');
             }, 100);
         }
 
@@ -711,7 +705,7 @@
         });
 
         console.log('🌊 Wave Poetry Synthesizer with Figma Designs');
-        console.log('📄 Navigate: First Page → About → Synthesizer');
+        console.log('📄 Navigate: About (Start) → Play → Synthesizer | About → First Page (Wave Rise)');
     </script>
 </body>
 </html>
