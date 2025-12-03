@@ -26,38 +26,35 @@
             background: #000;
         }
 
-        #synthesizer {
+        #synthesizer-container {
             position: absolute;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
+        }
+
+        #synthesizer-container svg {
             cursor: pointer;
         }
 
-        .key {
+        [id^="key"] {
             cursor: pointer;
             transition: all 0.1s ease;
         }
 
-        .key:hover {
+        [id^="key"]:hover {
             filter: brightness(1.2);
         }
 
-        .key:active {
+        [id^="key"]:active {
             filter: brightness(0.8);
         }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    <svg id="synthesizer" width="839" height="430" viewBox="0 0 839 430" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Simplified synthesizer visualization - keys only -->
-        <g id="base">
-            <rect width="839" height="430" rx="20" fill="#1a1a1a" opacity="0.8"/>
-        </g>
-        <!-- Keys will be generated dynamically -->
-    </svg>
+    <div id="synthesizer-container"></div>
 
     <script>
         const canvas = document.getElementById('canvas');
@@ -398,69 +395,47 @@
 
         animate();
 
-        // Generate synthesizer keys
-        const svg = document.getElementById('synthesizer');
-        const keysGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        keysGroup.setAttribute('id', 'keys');
-        svg.appendChild(keysGroup);
+        // Load the OP-1 Field SVG synthesizer
+        async function loadSynthesizer() {
+            try {
+                const response = await fetch('SVG');
+                const svgText = await response.text();
 
-        // Create 40 keys in a grid layout
-        for (let i = 0; i < 40; i++) {
-            const row = Math.floor(i / 10);
-            const col = i % 10;
-            const x = 30 + col * 80;
-            const y = 50 + row * 90;
+                const container = document.getElementById('synthesizer-container');
+                container.innerHTML = svgText;
 
-            const keyGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            keyGroup.setAttribute('class', 'key');
-            keyGroup.setAttribute('data-key', i + 1);
+                // Find all keys (key1-key40) and attach event listeners
+                const keyNumbers = [];
+                for (let i = 1; i <= 40; i++) {
+                    const keyElement = document.getElementById(`key${i}`);
+                    if (keyElement) {
+                        keyNumbers.push(i);
 
-            // Key background
-            const keyBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            keyBg.setAttribute('x', x);
-            keyBg.setAttribute('y', y);
-            keyBg.setAttribute('width', 64);
-            keyBg.setAttribute('height', 70);
-            keyBg.setAttribute('rx', 8);
-            keyBg.setAttribute('fill', '#333');
-            keyBg.setAttribute('stroke', '#666');
-            keyBg.setAttribute('stroke-width', 2);
+                        // Make it clickable
+                        keyElement.style.cursor = 'pointer';
 
-            // Key button
-            const keyBtn = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            keyBtn.setAttribute('cx', x + 32);
-            keyBtn.setAttribute('cy', y + 35);
-            keyBtn.setAttribute('r', 22);
-            keyBtn.setAttribute('fill', '#666');
-            keyBtn.setAttribute('stroke', '#999');
-            keyBtn.setAttribute('stroke-width', 2);
+                        // Add click event
+                        keyElement.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            triggerKey(i);
 
-            // Key number
-            const keyText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            keyText.setAttribute('x', x + 32);
-            keyText.setAttribute('y', y + 42);
-            keyText.setAttribute('text-anchor', 'middle');
-            keyText.setAttribute('fill', '#fff');
-            keyText.setAttribute('font-size', '14');
-            keyText.setAttribute('font-family', 'monospace');
-            keyText.textContent = i + 1;
+                            // Visual feedback
+                            keyElement.style.filter = 'brightness(1.5)';
+                            setTimeout(() => {
+                                keyElement.style.filter = '';
+                            }, 150);
+                        });
+                    }
+                }
 
-            keyGroup.appendChild(keyBg);
-            keyGroup.appendChild(keyBtn);
-            keyGroup.appendChild(keyText);
-            keysGroup.appendChild(keyGroup);
+                console.log(`Loaded OP-1 Field synthesizer with keys: ${keyNumbers.join(', ')}`);
 
-            // Add click event
-            keyGroup.addEventListener('click', () => {
-                triggerKey(i + 1);
-
-                // Visual feedback
-                keyBtn.setAttribute('fill', '#fff');
-                setTimeout(() => {
-                    keyBtn.setAttribute('fill', '#666');
-                }, 100);
-            });
+            } catch (error) {
+                console.error('Failed to load synthesizer SVG:', error);
+            }
         }
+
+        loadSynthesizer();
 
         // Trigger key effect
         function triggerKey(keyNum) {
@@ -486,12 +461,13 @@
             }
         });
 
-        console.log('Wave Poetry Synthesizer Loaded');
-        console.log('Click keys or use keyboard (1-0, q-p, a-;, z-/) to trigger effects');
-        console.log('Key 1-10: Wave 1 effects');
-        console.log('Key 11-20: Wave 2 effects');
-        console.log('Key 21-30: Wave 3 effects');
-        console.log('Key 31-40: Wave 4 effects');
+        console.log('🌊 Wave Poetry Synthesizer Loaded');
+        console.log('🎹 Click keys on OP-1 Field or use keyboard:');
+        console.log('   1-0, q-p, a-;, z-/ to trigger wave effects');
+        console.log('   Keys 1-10: Wave 1 (Rising Tide)');
+        console.log('   Keys 11-20: Wave 2 (Surging)');
+        console.log('   Keys 21-30: Wave 3 (Receding Tide)');
+        console.log('   Keys 31-40: Wave 4 (Calm)');
     </script>
 </body>
 </html>
