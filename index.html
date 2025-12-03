@@ -58,17 +58,21 @@
         }
 
         /* Wave animation - rises when entering About page from First page */
-        #about-page svg path[fill="black"],
-        #about-page svg text,
-        #about-page svg g {
+        /* Start with wave at First page position (offset down) */
+        #about-page svg {
             transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        #about-page svg path[fill="black"],
+        #about-page svg text {
+            transform: translateY(380px);
+            transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* When active and wave-rise class added, move to final position */
         #about-page.active.wave-rise svg path[fill="black"],
-        #about-page.active.wave-rise svg text,
-        #about-page.active.wave-rise svg g {
-            transform: translateY(-200px);
-            transform-origin: center bottom;
+        #about-page.active.wave-rise svg text {
+            transform: translateY(0);
         }
 
         /* Synthesizer Page */
