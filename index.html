@@ -205,7 +205,7 @@
 
     <!-- Synthesizer Page -->
     <div id="synthesizer-page" class="page">
-        <button class="back-btn" onclick="goToAbout()">← Back</button>
+        <button class="back-icon" onclick="showPage('first-page')"></button>
         <canvas id="canvas"></canvas>
         <div id="synthesizer-container"></div>
     </div>
@@ -240,7 +240,7 @@
                 firstPageSVG.setAttribute('preserveAspectRatio', 'xMidYMid slice');
                 firstPageSVG.style.cursor = 'pointer';
 
-                // Add click detection for "About" button on First page
+                // Add click detection for "About" and "Play" buttons on First page
                 firstPageSVG.addEventListener('click', (e) => {
                     const bbox = firstPageSVG.getBoundingClientRect();
                     const x = (e.clientX - bbox.left) / bbox.width;
@@ -248,10 +248,15 @@
 
                     console.log(`First Page Click at: ${(x*100).toFixed(1)}%, ${(y*100).toFixed(1)}%`);
 
-                    // Detect click on "about" text area (bottom area - adjust coordinates as needed)
-                    if (y > 0.70 && x > 0.30 && x < 0.70) {
+                    // Detect click on "about" text area (bottom left area)
+                    if (y > 0.70 && x > 0.15 && x < 0.45) {
                         console.log('About button clicked - going to About page');
                         goToAbout();
+                    }
+                    // Detect click on "play" button area (bottom right area)
+                    else if (y > 0.70 && x > 0.50 && x < 0.80) {
+                        console.log('Play button clicked - going to Synthesizer');
+                        goToSynthesizer();
                     }
                 });
 
@@ -263,22 +268,6 @@
                 aboutPageSVG.removeAttribute('width');
                 aboutPageSVG.removeAttribute('height');
                 aboutPageSVG.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-                aboutPageSVG.style.cursor = 'pointer';
-
-                // Add click detection for "Play" button on About page
-                aboutPageSVG.addEventListener('click', (e) => {
-                    const bbox = aboutPageSVG.getBoundingClientRect();
-                    const x = (e.clientX - bbox.left) / bbox.width;
-                    const y = (e.clientY - bbox.top) / bbox.height;
-
-                    console.log(`About Page Click at: ${(x*100).toFixed(1)}%, ${(y*100).toFixed(1)}%`);
-
-                    // Detect click on "play" button area (bottom area - adjust coordinates as needed)
-                    if (y > 0.70 && x > 0.30 && x < 0.70) {
-                        console.log('Play button clicked - going to Synthesizer');
-                        goToSynthesizer();
-                    }
-                });
 
                 document.getElementById('about-figma').appendChild(aboutPageSVG);
 
@@ -725,6 +714,47 @@
             }
         }
 
+        // Audio context for synthesizer sounds
+        let audioContext = null;
+
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Play sound for key
+        function playKeySound(keyNum) {
+            initAudio();
+
+            // Calculate frequency based on key number (chromatic scale starting from C3)
+            const baseFreq = 130.81; // C3
+            const semitone = Math.pow(2, 1/12);
+            const frequency = baseFreq * Math.pow(semitone, keyNum - 1);
+
+            // Create oscillator
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Set waveform (vary by key for diversity)
+            const waveforms = ['sine', 'square', 'sawtooth', 'triangle'];
+            oscillator.type = waveforms[Math.floor((keyNum - 1) / 10) % waveforms.length];
+
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+
+            // Envelope
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+            // Play
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
         // Trigger key effect
         function triggerKey(keyNum) {
             const waveIndex = Math.floor((keyNum - 1) / 10);
@@ -733,6 +763,9 @@
             if (keyEffects[keyNum]) {
                 keyEffects[keyNum](wave);
             }
+
+            // Play sound
+            playKeySound(keyNum);
         }
 
         // Keyboard support
@@ -762,7 +795,7 @@
         });
 
         console.log('🌊 Wave Poetry Synthesizer with Figma Designs');
-        console.log('📄 Navigate: First Page (Start) → About (Wave Rise) → Play → Synthesizer');
+        console.log('📄 Navigate: First Page (Start) → About (Wave Rise) OR Play → Synthesizer');
     </script>
 </body>
 </html>
