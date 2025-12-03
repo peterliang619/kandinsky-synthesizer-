@@ -58,12 +58,16 @@
         }
 
         /* Wave animation - rises when entering About page from First page */
-        #about-page svg path[fill="black"] {
+        #about-page svg path[fill="black"],
+        #about-page svg text,
+        #about-page svg g {
             transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        #about-page.active.wave-rise svg path[fill="black"] {
-            transform: translateY(-200px) scaleY(1.5);
+        #about-page.active.wave-rise svg path[fill="black"],
+        #about-page.active.wave-rise svg text,
+        #about-page.active.wave-rise svg g {
+            transform: translateY(-200px);
             transform-origin: center bottom;
         }
 
@@ -144,6 +148,43 @@
             background: #fff;
             color: #000;
         }
+
+        /* Back button icon only */
+        .back-icon {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            width: 50px;
+            height: 50px;
+            background: transparent;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .back-icon::before {
+            content: '';
+            width: 12px;
+            height: 12px;
+            border-left: 2px solid #fff;
+            border-bottom: 2px solid #fff;
+            transform: rotate(45deg);
+            margin-left: 4px;
+            transition: border-color 0.3s ease;
+        }
+
+        .back-icon:hover {
+            background: #fff;
+        }
+
+        .back-icon:hover::before {
+            border-color: #000;
+        }
     </style>
 </head>
 <body>
@@ -154,6 +195,7 @@
 
     <!-- About Page -->
     <div id="about-page" class="page">
+        <button class="back-icon" onclick="showPage('first-page')"></button>
         <div class="figma-container" id="about-figma"></div>
     </div>
 
