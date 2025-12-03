@@ -63,17 +63,21 @@
             transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        #about-page svg path,
-        #about-page svg text,
-        #about-page svg g {
+        /* Keep white background fixed */
+        #about-page svg rect[fill="white"] {
+            transform: translateY(0) !important;
+        }
+
+        /* Animate wave (black path) and text */
+        #about-page svg path[fill="black"],
+        #about-page svg text {
             transform: translateY(380px);
             transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         /* When active and wave-rise class added, move to final position */
-        #about-page.active.wave-rise svg path,
-        #about-page.active.wave-rise svg text,
-        #about-page.active.wave-rise svg g {
+        #about-page.active.wave-rise svg path[fill="black"],
+        #about-page.active.wave-rise svg text {
             transform: translateY(0);
         }
 
