@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wave Poetry Synthesizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: monospace;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+
+        #synthesizer {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            cursor: pointer;
+        }
+
+        .key {
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .key:hover {
+            filter: brightness(1.2);
+        }
+
+        .key:active {
+            filter: brightness(0.8);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <svg id="synthesizer" width="839" height="430" viewBox="0 0 839 430" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Simplified synthesizer visualization - keys only -->
+        <g id="base">
+            <rect width="839" height="430" rx="20" fill="#1a1a1a" opacity="0.8"/>
+        </g>
+        <!-- Keys will be generated dynamically -->
+    </svg>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Resize canvas
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Poem text - split into 4 waves
+        const poem = {
+            wave1: [
+                "Fingers brush through air,",
+                "Light unseen flickers across the screen,",
+                "Every breath a melody unfinished,",
+                "Waves folding, stacking, overflowing the edges of thought."
+            ],
+            wave2: [
+                "Letters fall like droplets into the deep,",
+                "Characters collide and resonate,",
+                "Sound waves rebound in the chest,",
+                "Colors shift from blue to orange to transparency,",
+                "The sea flows through every unspoken idea."
+            ],
+            wave3: [
+                "Memory slips away like sand pulled by retreating waves,",
+                "Each letter a lingering shadow,",
+                "Melody glimmers in the peripheral light,",
+                "Peaks and troughs rearranging endlessly,",
+                "Consciousness torn by wind, then smoothing again."
+            ],
+            wave4: [
+                "The sea lies still, letters drifting,",
+                "Each line an independent ripple,",
+                "One key pressed, and the waves surge,",
+                "Every crest echoes time,",
+                "Every motion extends the heartbeat."
+            ]
+        };
+
+        // Simplified pixel font (5x7 grid)
+        const pixelFont = {
+            'A': [[0,1,1,1,0],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]],
+            'B': [[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0]],
+            'C': [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,0],[1,0,0,0,1],[0,1,1,1,0]],
+            'D': [[1,1,1,0,0],[1,0,0,1,0],[1,0,0,0,1],[1,0,0,1,0],[1,1,1,0,0]],
+            'E': [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,1,1,1,1]],
+            'F': [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0]],
+            'G': [[0,1,1,1,0],[1,0,0,0,0],[1,0,1,1,1],[1,0,0,0,1],[0,1,1,1,0]],
+            'H': [[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]],
+            'I': [[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[1,1,1,1,1]],
+            'J': [[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+            'K': [[1,0,0,0,1],[1,0,0,1,0],[1,1,1,0,0],[1,0,0,1,0],[1,0,0,0,1]],
+            'L': [[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
+            'M': [[1,0,0,0,1],[1,1,0,1,1],[1,0,1,0,1],[1,0,0,0,1],[1,0,0,0,1]],
+            'N': [[1,0,0,0,1],[1,1,0,0,1],[1,0,1,0,1],[1,0,0,1,1],[1,0,0,0,1]],
+            'O': [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+            'P': [[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0]],
+            'Q': [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,1,0],[0,1,1,0,1]],
+            'R': [[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,1,0],[1,0,0,0,1]],
+            'S': [[0,1,1,1,1],[1,0,0,0,0],[0,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],
+            'T': [[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],
+            'U': [[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+            'V': [[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0]],
+            'W': [[1,0,0,0,1],[1,0,0,0,1],[1,0,1,0,1],[1,1,0,1,1],[1,0,0,0,1]],
+            'X': [[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],[0,1,0,1,0],[1,0,0,0,1]],
+            'Y': [[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],
+            'Z': [[1,1,1,1,1],[0,0,0,1,0],[0,0,1,0,0],[0,1,0,0,0],[1,1,1,1,1]],
+            ' ': [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],
+            ',': [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,1,0,0],[0,1,0,0,0]],
+            '.': [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,1,0,0]],
+            '!': [[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,0,0,0],[0,0,1,0,0]],
+            '?': [[0,1,1,1,0],[1,0,0,0,1],[0,0,0,1,0],[0,0,0,0,0],[0,0,1,0,0]],
+            '-': [[0,0,0,0,0],[0,0,0,0,0],[1,1,1,1,1],[0,0,0,0,0],[0,0,0,0,0]],
+            ':': [[0,0,0,0,0],[0,0,1,0,0],[0,0,0,0,0],[0,0,1,0,0],[0,0,0,0,0]],
+            ';': [[0,0,0,0,0],[0,0,1,0,0],[0,0,0,0,0],[0,0,1,0,0],[0,1,0,0,0]]
+        };
+
+        // Convert text to circle points
+        function textToCircles(text, startX, startY, circleSize = 2, spacing = 6) {
+            const circles = [];
+            let offsetX = startX;
+
+            for (let char of text.toUpperCase()) {
+                const pattern = pixelFont[char] || pixelFont[' '];
+
+                for (let row = 0; row < pattern.length; row++) {
+                    for (let col = 0; col < pattern[row].length; col++) {
+                        if (pattern[row][col] === 1) {
+                            circles.push({
+                                x: offsetX + col * spacing,
+                                y: startY + row * spacing,
+                                baseX: offsetX + col * spacing,
+                                baseY: startY + row * spacing,
+                                size: circleSize,
+                                baseSize: circleSize,
+                                velocity: { x: 0, y: 0 },
+                                alpha: 1
+                            });
+                        }
+                    }
+                }
+
+                offsetX += (pattern[0].length + 1) * spacing;
+            }
+
+            return circles;
+        }
+
+        // Wave layers
+        class WaveLayer {
+            constructor(lines, yStart, color, waveParams) {
+                this.lines = lines;
+                this.yStart = yStart;
+                this.color = color;
+                this.amplitude = waveParams.amplitude || 20;
+                this.frequency = waveParams.frequency || 0.01;
+                this.phase = waveParams.phase || 0;
+                this.speed = waveParams.speed || 1;
+                this.circles = [];
+                this.time = 0;
+                this.active = true;
+
+                // Generate circles for each line
+                let yOffset = 0;
+                for (let line of lines) {
+                    const lineCircles = textToCircles(line, 100, yStart + yOffset, 2, 6);
+                    this.circles.push(...lineCircles);
+                    yOffset += 50;
+                }
+            }
+
+            update(deltaTime) {
+                this.time += deltaTime * this.speed * 0.001;
+
+                // Update circle positions with wave motion
+                for (let circle of this.circles) {
+                    const waveOffset = Math.sin(circle.baseX * this.frequency + this.time + this.phase) * this.amplitude;
+                    circle.y = circle.baseY + waveOffset;
+
+                    // Add horizontal drift
+                    circle.x = circle.baseX + Math.cos(this.time * 0.5) * 10;
+                }
+            }
+
+            draw(ctx) {
+                if (!this.active) return;
+
+                ctx.fillStyle = this.color;
+                for (let circle of this.circles) {
+                    ctx.globalAlpha = circle.alpha;
+                    ctx.beginPath();
+                    ctx.arc(circle.x, circle.y, circle.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            }
+
+            // Effects triggered by keys
+            burst(keyIndex) {
+                const intensity = (keyIndex % 10) / 10;
+                for (let circle of this.circles) {
+                    const dx = circle.x - canvas.width / 2;
+                    const dy = circle.y - canvas.height / 2;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const force = (1 - Math.min(dist / 500, 1)) * intensity * 50;
+                    circle.velocity.x += (dx / dist) * force;
+                    circle.velocity.y += (dy / dist) * force;
+                }
+            }
+
+            ripple(keyIndex) {
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const rippleSpeed = 5 + (keyIndex % 5);
+
+                for (let circle of this.circles) {
+                    const dx = circle.x - centerX;
+                    const dy = circle.y - centerY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const delay = dist / rippleSpeed;
+
+                    setTimeout(() => {
+                        circle.size = circle.baseSize * 2;
+                        setTimeout(() => {
+                            circle.size = circle.baseSize;
+                        }, 100);
+                    }, delay);
+                }
+            }
+
+            scatter() {
+                for (let circle of this.circles) {
+                    circle.velocity.x = (Math.random() - 0.5) * 20;
+                    circle.velocity.y = (Math.random() - 0.5) * 20;
+                }
+            }
+
+            gather() {
+                for (let circle of this.circles) {
+                    const dx = circle.baseX - circle.x;
+                    const dy = circle.baseY - circle.y;
+                    circle.velocity.x += dx * 0.1;
+                    circle.velocity.y += dy * 0.1;
+                }
+            }
+
+            applyVelocity() {
+                for (let circle of this.circles) {
+                    circle.x += circle.velocity.x;
+                    circle.y += circle.velocity.y;
+
+                    // Friction
+                    circle.velocity.x *= 0.95;
+                    circle.velocity.y *= 0.95;
+
+                    // Spring back to base position
+                    const dx = circle.baseX - circle.x;
+                    const dy = circle.baseY - circle.y;
+                    circle.velocity.x += dx * 0.01;
+                    circle.velocity.y += dy * 0.01;
+                }
+            }
+        }
+
+        // Create wave layers
+        const waves = [
+            new WaveLayer(poem.wave1, 50, '#ffffff', {
+                amplitude: 20,
+                frequency: 0.01,
+                phase: 0,
+                speed: 1
+            }),
+            new WaveLayer(poem.wave2, 250, '#ffffff', {
+                amplitude: 30,
+                frequency: 0.015,
+                phase: Math.PI / 4,
+                speed: 1.5
+            }),
+            new WaveLayer(poem.wave3, 450, '#ffffff', {
+                amplitude: 25,
+                frequency: 0.012,
+                phase: Math.PI / 2,
+                speed: 0.8
+            }),
+            new WaveLayer(poem.wave4, 650, '#ffffff', {
+                amplitude: 35,
+                frequency: 0.008,
+                phase: Math.PI,
+                speed: 1.2
+            })
+        ];
+
+        // Animation state
+        let lastTime = Date.now();
+        let globalEffects = {
+            turbulence: 0,
+            zoom: 1,
+            rotation: 0
+        };
+
+        // Key effects mapping (40 keys)
+        const keyEffects = {
+            1: (wave) => { wave.amplitude *= 1.2; setTimeout(() => wave.amplitude /= 1.2, 500); },
+            2: (wave) => { wave.amplitude *= 0.8; setTimeout(() => wave.amplitude /= 0.8, 500); },
+            3: (wave) => { wave.frequency *= 1.5; setTimeout(() => wave.frequency /= 1.5, 500); },
+            4: (wave) => { wave.frequency *= 0.7; setTimeout(() => wave.frequency /= 0.7, 500); },
+            5: (wave) => { wave.speed *= 2; setTimeout(() => wave.speed /= 2, 500); },
+            6: (wave) => { wave.speed *= 0.5; setTimeout(() => wave.speed /= 0.5, 500); },
+            7: (wave) => { wave.phase += Math.PI / 4; },
+            8: (wave) => { wave.phase -= Math.PI / 4; },
+            9: (wave) => { wave.burst(9); },
+            10: (wave) => { wave.ripple(10); },
+            11: (wave) => { wave.scatter(); },
+            12: (wave) => { wave.gather(); },
+            13: (wave) => { for(let c of wave.circles) c.size *= 1.5; setTimeout(() => { for(let c of wave.circles) c.size /= 1.5; }, 300); },
+            14: (wave) => { for(let c of wave.circles) c.size *= 0.5; setTimeout(() => { for(let c of wave.circles) c.size /= 0.5; }, 300); },
+            15: (wave) => { for(let c of wave.circles) c.alpha = 0.3; setTimeout(() => { for(let c of wave.circles) c.alpha = 1; }, 300); },
+            16: (wave) => { wave.active = !wave.active; setTimeout(() => wave.active = true, 500); },
+            17: (wave) => { for(let c of wave.circles) c.baseX += 50; setTimeout(() => { for(let c of wave.circles) c.baseX -= 50; }, 500); },
+            18: (wave) => { for(let c of wave.circles) c.baseX -= 50; setTimeout(() => { for(let c of wave.circles) c.baseX += 50; }, 500); },
+            19: (wave) => { for(let c of wave.circles) c.baseY += 30; setTimeout(() => { for(let c of wave.circles) c.baseY -= 30; }, 500); },
+            20: (wave) => { for(let c of wave.circles) c.baseY -= 30; setTimeout(() => { for(let c of wave.circles) c.baseY += 30; }, 500); },
+            21: (wave) => { wave.burst(21); wave.amplitude *= 1.5; setTimeout(() => wave.amplitude /= 1.5, 500); },
+            22: (wave) => { wave.ripple(22); wave.frequency *= 1.3; setTimeout(() => wave.frequency /= 1.3, 500); },
+            23: (wave) => { wave.scatter(); wave.speed *= 2; setTimeout(() => wave.speed /= 2, 500); },
+            24: (wave) => { wave.gather(); wave.phase += Math.PI / 2; },
+            25: (wave) => { globalEffects.turbulence += 0.5; setTimeout(() => globalEffects.turbulence -= 0.5, 500); },
+            26: (wave) => { globalEffects.zoom *= 1.2; setTimeout(() => globalEffects.zoom /= 1.2, 500); },
+            27: (wave) => { globalEffects.zoom *= 0.8; setTimeout(() => globalEffects.zoom /= 0.8, 500); },
+            28: (wave) => { globalEffects.rotation += 0.1; setTimeout(() => globalEffects.rotation -= 0.1, 500); },
+            29: (wave) => { for(let c of wave.circles) { c.velocity.x = Math.sin(c.baseX * 0.01) * 30; } },
+            30: (wave) => { for(let c of wave.circles) { c.velocity.y = Math.cos(c.baseY * 0.01) * 30; } },
+            31: (wave) => { wave.amplitude = 50; wave.frequency = 0.02; setTimeout(() => { wave.amplitude = 20; wave.frequency = 0.01; }, 1000); },
+            32: (wave) => { wave.amplitude = 5; wave.frequency = 0.05; setTimeout(() => { wave.amplitude = 20; wave.frequency = 0.01; }, 1000); },
+            33: (wave) => { for(let c of wave.circles) { c.velocity.x = (Math.random() - 0.5) * 50; c.velocity.y = (Math.random() - 0.5) * 50; } },
+            34: (wave) => { wave.ripple(34); for(let c of wave.circles) c.size *= 2; setTimeout(() => { for(let c of wave.circles) c.size /= 2; }, 400); },
+            35: (wave) => { wave.burst(35); wave.scatter(); setTimeout(() => wave.gather(), 300); },
+            36: (wave) => { wave.frequency *= 3; wave.amplitude *= 2; setTimeout(() => { wave.frequency /= 3; wave.amplitude /= 2; }, 600); },
+            37: (wave) => { for(let c of wave.circles) c.alpha = Math.random(); setTimeout(() => { for(let c of wave.circles) c.alpha = 1; }, 400); },
+            38: (wave) => { wave.phase += Math.PI; wave.speed *= -1; setTimeout(() => wave.speed *= -1, 1000); },
+            39: (wave) => { for(let i = 0; i < wave.circles.length; i++) { setTimeout(() => { wave.circles[i].size *= 3; setTimeout(() => wave.circles[i].size /= 3, 100); }, i * 2); } },
+            40: (wave) => { wave.burst(40); wave.ripple(40); wave.amplitude *= 2; setTimeout(() => wave.amplitude /= 2, 700); }
+        };
+
+        // Animation loop
+        function animate() {
+            const currentTime = Date.now();
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Apply global transformations
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(globalEffects.zoom, globalEffects.zoom);
+            ctx.rotate(globalEffects.rotation);
+            ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+            // Update and draw waves
+            for (let wave of waves) {
+                wave.update(deltaTime);
+                wave.applyVelocity();
+                wave.draw(ctx);
+            }
+
+            ctx.restore();
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // Generate synthesizer keys
+        const svg = document.getElementById('synthesizer');
+        const keysGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        keysGroup.setAttribute('id', 'keys');
+        svg.appendChild(keysGroup);
+
+        // Create 40 keys in a grid layout
+        for (let i = 0; i < 40; i++) {
+            const row = Math.floor(i / 10);
+            const col = i % 10;
+            const x = 30 + col * 80;
+            const y = 50 + row * 90;
+
+            const keyGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            keyGroup.setAttribute('class', 'key');
+            keyGroup.setAttribute('data-key', i + 1);
+
+            // Key background
+            const keyBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            keyBg.setAttribute('x', x);
+            keyBg.setAttribute('y', y);
+            keyBg.setAttribute('width', 64);
+            keyBg.setAttribute('height', 70);
+            keyBg.setAttribute('rx', 8);
+            keyBg.setAttribute('fill', '#333');
+            keyBg.setAttribute('stroke', '#666');
+            keyBg.setAttribute('stroke-width', 2);
+
+            // Key button
+            const keyBtn = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            keyBtn.setAttribute('cx', x + 32);
+            keyBtn.setAttribute('cy', y + 35);
+            keyBtn.setAttribute('r', 22);
+            keyBtn.setAttribute('fill', '#666');
+            keyBtn.setAttribute('stroke', '#999');
+            keyBtn.setAttribute('stroke-width', 2);
+
+            // Key number
+            const keyText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            keyText.setAttribute('x', x + 32);
+            keyText.setAttribute('y', y + 42);
+            keyText.setAttribute('text-anchor', 'middle');
+            keyText.setAttribute('fill', '#fff');
+            keyText.setAttribute('font-size', '14');
+            keyText.setAttribute('font-family', 'monospace');
+            keyText.textContent = i + 1;
+
+            keyGroup.appendChild(keyBg);
+            keyGroup.appendChild(keyBtn);
+            keyGroup.appendChild(keyText);
+            keysGroup.appendChild(keyGroup);
+
+            // Add click event
+            keyGroup.addEventListener('click', () => {
+                triggerKey(i + 1);
+
+                // Visual feedback
+                keyBtn.setAttribute('fill', '#fff');
+                setTimeout(() => {
+                    keyBtn.setAttribute('fill', '#666');
+                }, 100);
+            });
+        }
+
+        // Trigger key effect
+        function triggerKey(keyNum) {
+            const waveIndex = Math.floor((keyNum - 1) / 10);
+            const wave = waves[Math.min(waveIndex, waves.length - 1)];
+
+            if (keyEffects[keyNum]) {
+                keyEffects[keyNum](wave);
+            }
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            const keyMap = {
+                '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '0': 10,
+                'q': 11, 'w': 12, 'e': 13, 'r': 14, 't': 15, 'y': 16, 'u': 17, 'i': 18, 'o': 19, 'p': 20,
+                'a': 21, 's': 22, 'd': 23, 'f': 24, 'g': 25, 'h': 26, 'j': 27, 'k': 28, 'l': 29, ';': 30,
+                'z': 31, 'x': 32, 'c': 33, 'v': 34, 'b': 35, 'n': 36, 'm': 37, ',': 38, '.': 39, '/': 40
+            };
+
+            if (keyMap[e.key]) {
+                triggerKey(keyMap[e.key]);
+            }
+        });
+
+        console.log('Wave Poetry Synthesizer Loaded');
+        console.log('Click keys or use keyboard (1-0, q-p, a-;, z-/) to trigger effects');
+        console.log('Key 1-10: Wave 1 effects');
+        console.log('Key 11-20: Wave 2 effects');
+        console.log('Key 21-30: Wave 3 effects');
+        console.log('Key 31-40: Wave 4 effects');
+    </script>
+</body>
+</html>
